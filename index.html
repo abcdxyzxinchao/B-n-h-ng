@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Full Features</title>
+    <title>My Store - Final Fix</title>
 </head>
 <body class="bg-gray-50">
 
     <nav class="flex justify-between items-center p-6 bg-white shadow-sm sticky top-0 z-50">
-        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="showPage('home')">MY STORE</h1>
-        <div id="auth-nav"><button id="btn-login" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button></div>
+        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="window.showPage('home')">MY STORE</h1>
+        <div id="auth-nav">
+            <button id="btn-login" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>
+        </div>
     </nav>
 
     <div id="app" class="p-6">
@@ -20,11 +22,11 @@
                         <div class="bg-white p-4 rounded-xl shadow-md border relative">
                             <div class="h-40 bg-gray-200 mb-4 rounded"></div>
                             <h3 class="font-bold">Sản phẩm ${i}</h3>
-                            <p class="text-red-500 font-semibold cursor-pointer">500.000đ</p>
-                            <button onclick="toggleMenu(${i})" class="absolute top-2 right-2 text-xl font-bold">...</button>
-                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-lg p-2 rounded border z-40">
-                                <p class="cursor-pointer hover:text-blue-500" onclick="addToWishlist(${i})">Thêm yêu thích</p>
-                                <p class="cursor-pointer hover:text-blue-500" onclick="showDetail(${i})">Xem chi tiết</p>
+                            <p class="text-red-500 font-semibold">500.000đ</p>
+                            <button id="menu-btn-${i}" class="absolute top-2 right-2 text-xl font-bold">...</button>
+                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-lg p-2 rounded border z-40 w-32">
+                                <p class="cursor-pointer hover:text-blue-500 p-1 wish-btn" data-id="${i}">Thêm yêu thích</p>
+                                <p class="cursor-pointer hover:text-blue-500 p-1 detail-btn" data-id="${i}">Xem chi tiết</p>
                             </div>
                         </div>
                     `);
@@ -40,61 +42,67 @@
         <div id="page-detail" class="hidden bg-white p-8 rounded-xl shadow">
             <h2 id="detail-title" class="text-3xl font-bold"></h2>
             <p class="text-xl text-red-600 mt-4">Giá: 500.000đ</p>
-            <button class="mt-4 bg-green-500 text-white px-6 py-2 rounded">Mua ngay</button>
+            <button class="mt-4 bg-green-500 text-white px-6 py-2 rounded" onclick="window.showPage('home')">Quay lại</button>
         </div>
-
-        <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
-            </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        
-        // ... (Cấu hình Firebase y hệt cũ)
 
-        // HÀM ĐIỀU HƯỚNG
+        const auth = getAuth(initializeApp({
+            apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
+            authDomain: "banhang-b31dd.firebaseapp.com",
+            projectId: "banhang-b31dd",
+            storageBucket: "banhang-b31dd.firebasestorage.app",
+            messagingSenderId: "634655097273",
+            appId: "1:634655097273:web:899337e325e046eb91f668"
+        }));
+
+        // Gán hàm vào window để gọi từ onclick
         window.showPage = (page) => {
-            ['home', 'wishlist', 'detail', 'auth'].forEach(p => document.getElementById('page-'+p).classList.add('hidden'));
+            ['home', 'wishlist', 'detail'].forEach(p => document.getElementById('page-'+p).classList.add('hidden'));
             document.getElementById('page-'+page).classList.remove('hidden');
         };
 
-        // MENU SẢN PHẨM
-        window.toggleMenu = (id) => document.getElementById('menu-'+id).classList.toggle('hidden');
+        // Logic sản phẩm
+        document.querySelectorAll('[id^="menu-btn-"]').forEach(btn => {
+            btn.onclick = () => document.getElementById('menu-' + btn.id.split('-')[2]).classList.toggle('hidden');
+        });
 
-        // YÊU THÍCH (Lưu vào mảng tạm thời)
         let wishlist = [];
-        window.addToWishlist = (id) => {
-            wishlist.push(id);
-            alert("Đã thêm sản phẩm " + id + " vào yêu thích!");
-        };
+        document.querySelectorAll('.wish-btn').forEach(btn => {
+            btn.onclick = () => {
+                wishlist.push(btn.dataset.id);
+                alert("Đã thêm sản phẩm " + btn.dataset.id + " vào yêu thích!");
+            };
+        });
 
-        // XEM CHI TIẾT
-        window.showDetail = (id) => {
-            document.getElementById('detail-title').innerText = "Sản phẩm " + id;
-            showPage('detail');
-        };
+        document.querySelectorAll('.detail-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.getElementById('detail-title').innerText = "Sản phẩm " + btn.dataset.id;
+                window.showPage('detail');
+            };
+        });
 
-        // HIỂN THỊ YÊU THÍCH
-        const renderWishlist = () => {
-            const container = document.getElementById('wishlist-container');
-            container.innerHTML = wishlist.map(id => `
-                <div class="bg-white p-4 rounded shadow">Sản phẩm ${id} đã thích</div>
-            `).join('');
-        };
-
-        // Update Nav khi đăng nhập
+        // Xử lý Auth và Nav
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('auth-nav').innerHTML = `
                     <div class="relative group">
-                        <img src="${user.photoURL}" class="w-10 h-10 rounded-full cursor-pointer">
-                        <div class="absolute right-0 hidden group-hover:block bg-white p-4 shadow-xl border">
-                            <p class="cursor-pointer" onclick="renderWishlist(); showPage('wishlist')">Danh sách yêu thích</p>
-                            <button onclick="signOut(auth).then(()=>location.reload())">Đăng xuất</button>
+                        <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + user.email}" class="w-10 h-10 rounded-full cursor-pointer">
+                        <div class="absolute right-0 hidden group-hover:block bg-white p-4 shadow-xl border z-50">
+                            <p class="cursor-pointer hover:text-blue-500" id="go-wishlist">Danh sách yêu thích</p>
+                            <button id="logout-btn" class="text-red-500 mt-2">Đăng xuất</button>
                         </div>
                     </div>
                 `;
+                document.getElementById('go-wishlist').onclick = () => {
+                    const container = document.getElementById('wishlist-container');
+                    container.innerHTML = wishlist.map(id => `<div class="bg-white p-4 shadow rounded">Sản phẩm ${id}</div>`).join('');
+                    window.showPage('wishlist');
+                };
+                document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
             }
         });
     </script>
