@@ -1,236 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Shop Pro Full</title>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Web Siêu Đẹp</title>
 </head>
-<body>
+<body class="bg-gray-50">
 
-<!-- USER AREA -->
-<div id="authArea">
-  <button onclick="loginGoogle()">Login Google</button>
-</div>
+    <nav class="flex justify-between items-center p-6 bg-white shadow-sm sticky top-0 z-50">
+        <h1 class="text-2xl font-bold text-blue-600">MY STORE</h1>
+        <div id="auth-nav">
+            <button onclick="showPage('login')" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>
+        </div>
+    </nav>
 
-<div id="userBox" style="display:none;cursor:pointer;">
-  <img id="avatar" width="40" style="border-radius:50%">
-</div>
+    <div id="app" class="p-6">
+        <div id="page-home" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <script>
+                for(let i=1; i<=20; i++) {
+                    document.write(`
+                        <div class="bg-white p-4 rounded-xl shadow-md">
+                            <div class="h-40 bg-gray-200 mb-4 rounded"></div>
+                            <h3 class="font-bold">Sản phẩm ${i}</h3>
+                            <p class="text-red-500 font-semibold cursor-pointer" onclick="alert('Mở modal mua ngay')">500.000đ</p>
+                            <button class="float-right text-xl" onclick="alert('Menu: Thêm yêu thích / Xem chi tiết')">...</button>
+                        </div>
+                    `);
+                }
+            </script>
+        </div>
 
-<div id="menu" style="display:none;border:1px solid #ccc;padding:10px;">
-  <p id="userEmail"></p>
-  <p id="balance"></p>
-  <p id="stats"></p>
-  <button onclick="openWishlist()">❤️ Wishlist</button>
-  <button onclick="logout()">Logout</button>
-</div>
+        <div id="page-login" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
+            <h2 class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
+            <input type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded">
+            <input type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded">
+            <button class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
+            <button class="w-full bg-red-500 text-white p-3 rounded-lg" onclick="alert('Kết nối Firebase Google Auth')">Đăng nhập bằng Google</button>
+            <p class="mt-4 text-center">Chưa có tài khoản? <a href="#" onclick="showPage('register')" class="text-blue-500">Đăng ký</a></p>
+        </div>
+    </div>
 
-<hr>
+    <script type="module">
+        // Import Firebase từ CDN
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-<!-- PRODUCT -->
-<h3>Add Product</h3>
-<input id="name" placeholder="name">
-<input id="price" placeholder="price">
-<button onclick="addProduct()">Add</button>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
+            authDomain: "banhang-b31dd.firebaseapp.com",
+            projectId: "banhang-b31dd",
+            storageBucket: "banhang-b31dd.firebasestorage.app",
+            messagingSenderId: "634655097273",
+            appId: "1:634655097273:web:899337e325e046eb91f668"
+        };
 
-<h3>Products</h3>
-<div id="products"></div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-<hr>
+        // Logic chuyển trang
+        window.showPage = (page) => {
+            document.getElementById('page-home').classList.add('hidden');
+            document.getElementById('page-login').classList.add('hidden');
+            document.getElementById('page-' + page).classList.remove('hidden');
+        };
 
-<!-- CART -->
-<h3>Cart</h3>
-<button onclick="checkout()">Checkout</button>
-<div id="cart"></div>
-
-<!-- WISHLIST PAGE -->
-<div id="wishlistPage" style="display:none;"></div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  doc,
-  getDoc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-/* ================= FIREBASE ================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
-  authDomain: "banhang-b31dd.firebaseapp.com",
-  projectId: "banhang-b31dd"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-let user = null;
-let cart = [];
-
-/* ================= LOGIN ================= */
-window.loginGoogle = () => {
-  signInWithRedirect(auth, provider);
-};
-
-getRedirectResult(auth).catch(console.error);
-
-/* ================= AUTH STATE ================= */
-onAuthStateChanged(auth, async (u) => {
-  user = u;
-  if (!u) return;
-
-  authArea.style.display = "none";
-  userBox.style.display = "block";
-  avatar.src = u.photoURL;
-
-  userEmail.innerText = u.email;
-
-  await createUserIfNotExists(u);
-  loadUserData(u.uid);
-});
-
-/* ================= USER CREATE ================= */
-async function createUserIfNotExists(u) {
-  const ref = doc(db, "users", u.uid);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      email: u.email,
-      photoURL: u.photoURL,
-      balance: 0,
-      totalOrders: 0
-    });
-  }
-}
-
-/* ================= LOAD USER ================= */
-async function loadUserData(uid) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  const data = snap.data();
-
-  balance.innerText = "Balance: " + data.balance;
-  stats.innerText = "Orders: " + data.totalOrders;
-}
-
-/* ================= MENU ================= */
-userBox.onclick = () => {
-  menu.style.display = menu.style.display === "none" ? "block" : "none";
-};
-
-/* ================= LOGOUT ================= */
-window.logout = () => signOut(auth);
-
-/* ================= PRODUCTS ================= */
-window.addProduct = async () => {
-  if (!user) return;
-
-  await addDoc(collection(db, "products"), {
-    name: name.value,
-    price: price.value,
-    createdAt: Date.now()
-  });
-};
-
-onSnapshot(collection(db, "products"), (snap) => {
-  let html = "";
-
-  snap.forEach(d => {
-    let p = d.data();
-
-    html += `
-      <div style="border:1px solid #ccc;margin:5px;padding:10px">
-        <b>${p.name}</b><br>
-        ${p.price} đ<br>
-        <button onclick="addToCart('${p.name}',${p.price})">Cart</button>
-        <button onclick="addToWishlist('${d.id}')">❤️</button>
-      </div>
-    `;
-  });
-
-  products.innerHTML = html;
-});
-
-/* ================= CART ================= */
-window.addToCart = (name, price) => {
-  cart.push({ name, price });
-  renderCart();
-};
-
-function renderCart() {
-  cartDiv.innerHTML = cart.map(i => i.name + " - " + i.price).join("<br>");
-}
-
-/* ================= CHECKOUT ================= */
-window.checkout = async () => {
-  if (!user) return;
-
-  await addDoc(collection(db, "orders"), {
-    uid: user.uid,
-    items: cart,
-    total: cart.reduce((s,i)=>s+Number(i.price),0),
-    createdAt: Date.now()
-  });
-
-  cart = [];
-  renderCart();
-};
-
-/* ================= WISHLIST ================= */
-window.addToWishlist = async (pid) => {
-  const ref = doc(db, "wishlist", user.uid);
-  const snap = await getDoc(ref);
-
-  let items = snap.exists() ? snap.data().items : [];
-
-  if (!items.includes(pid)) items.push(pid);
-
-  await setDoc(ref, { items });
-};
-
-window.openWishlist = async () => {
-  const ref = doc(db, "wishlist", user.uid);
-  const snap = await getDoc(ref);
-
-  let items = snap.exists() ? snap.data().items : [];
-
-  wishlistPage.style.display = "block";
-  products.style.display = "none";
-
-  wishlistPage.innerHTML =
-    "<h3>Wishlist</h3>" +
-    items.map(i => `<div>❤️ ${i}</div>`).join("");
-};
-
-</script>
-
-<!-- DOM -->
-<div id="authArea"></div>
-<div id="userBox"><img id="avatar"></div>
-
-<p id="userEmail"></p>
-<p id="balance"></p>
-<p id="stats"></p>
-
-<div id="menu" style="display:none"></div>
-
-<div id="products"></div>
-<div id="cartDiv"></div>
-
+        // Lắng nghe trạng thái đăng nhập
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-nav').innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span>${user.email}</span>
+                        <div class="w-10 h-10 bg-blue-500 rounded-full cursor-pointer" onclick="alert('Popup: Số dư: 0đ | Đơn hàng yêu thích | Đăng xuất')"></div>
+                    </div>
+                `;
+                showPage('home');
+            }
+        });
+    </script>
 </body>
 </html>
