@@ -2,15 +2,16 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store</title>
+    <title>My Store - Full Version</title>
 </head>
 <body class="bg-gray-50">
 
     <nav class="flex justify-between items-center p-6 bg-white shadow-sm sticky top-0 z-50">
-        <h1 class="text-2xl font-bold text-blue-600">MY STORE</h1>
+        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="showPage('home')">MY STORE</h1>
         <div id="auth-nav">
-            <button onclick="showPage('login')" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>
+            <button onclick="showPage('auth')" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>
         </div>
     </nav>
 
@@ -19,7 +20,7 @@
             <script>
                 for(let i=1; i<=20; i++) {
                     document.write(`
-                        <div class="bg-white p-4 rounded-xl shadow-md border">
+                        <div class="bg-white p-4 rounded-xl shadow-md border hover:shadow-lg transition">
                             <div class="h-40 bg-gray-200 mb-4 rounded"></div>
                             <h3 class="font-bold">Sản phẩm ${i}</h3>
                             <p class="text-red-500 font-semibold cursor-pointer">500.000đ</p>
@@ -32,11 +33,11 @@
 
         <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
             <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
-            <input id="email" type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded">
-            <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded">
+            <input id="email" type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400">
+            <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400">
             <button id="auth-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4" onclick="handleAuth()">Đăng nhập</button>
-            <button class="w-full bg-red-500 text-white p-3 rounded-lg" onclick="loginGoogle()">Google</button>
-            <p class="mt-4 text-center cursor-pointer text-blue-500" onclick="toggleMode()" id="toggle-text">Chưa có tài khoản? Đăng ký</p>
+            <button class="w-full bg-red-500 text-white p-3 rounded-lg" onclick="loginGoogle()">Đăng nhập bằng Google</button>
+            <p class="mt-4 text-center cursor-pointer text-blue-500 hover:underline" onclick="toggleMode()" id="toggle-text">Chưa có tài khoản? Đăng ký</p>
         </div>
     </div>
 
@@ -44,11 +45,28 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-        const firebaseConfig = { /* CẤU HÌNH CỦA BẠN */ };
+        const firebaseConfig = {
+            apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
+            authDomain: "banhang-b31dd.firebaseapp.com",
+            projectId: "banhang-b31dd",
+            storageBucket: "banhang-b31dd.firebasestorage.app",
+            messagingSenderId: "634655097273",
+            appId: "1:634655097273:web:899337e325e046eb91f668"
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
+        // Chuyển trang
+        window.showPage = (page) => {
+            document.getElementById('page-home').classList.add('hidden');
+            document.getElementById('page-auth').classList.add('hidden');
+            if(page === 'home') document.getElementById('page-home').classList.remove('hidden');
+            if(page === 'auth') document.getElementById('page-auth').classList.remove('hidden');
+        };
+
+        // Chuyển đổi mode Đăng nhập/Đăng ký
         let isLogin = true;
         window.toggleMode = () => {
             isLogin = !isLogin;
@@ -57,37 +75,39 @@
             document.getElementById('toggle-text').innerText = isLogin ? "Chưa có tài khoản? Đăng ký" : "Đã có tài khoản? Đăng nhập";
         };
 
-        window.handleAuth = () => {
+        // Xử lý Auth Email
+        window.handleAuth = async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
-            isLogin ? signInWithEmailAndPassword(auth, email, pass) : createUserWithEmailAndPassword(auth, email, pass);
+            try {
+                if (isLogin) await signInWithEmailAndPassword(auth, email, pass);
+                else await createUserWithEmailAndPassword(auth, email, pass);
+            } catch (err) { alert(err.message); }
         };
 
-        window.loginGoogle = () => signInWithPopup(auth, provider);
+        // Google Auth
+        window.loginGoogle = () => signInWithPopup(auth, provider).catch(err => alert(err.message));
 
+        // Trạng thái Login
         onAuthStateChanged(auth, (user) => {
             const nav = document.getElementById('auth-nav');
             if (user) {
                 nav.innerHTML = `
-                    <div class="relative">
-                        <img src="${user.photoURL || 'https://ui-avatars.com/api/?name='+user.email}" class="w-10 h-10 rounded-full cursor-pointer" onclick="document.getElementById('popup').classList.toggle('hidden')">
-                        <div id="popup" class="hidden absolute right-0 mt-2 w-64 bg-white shadow-2xl p-4 rounded-xl border">
-                            <p class="font-bold border-b pb-2">${user.email}</p>
-                            <p class="py-2">Số dư: 0đ</p>
-                            <p class="py-2 text-blue-500 cursor-pointer" onclick="alert('Mở danh sách yêu thích')">Danh sách yêu thích</p>
-                            <button onclick="signOut(auth).then(()=>location.reload())" class="w-full mt-2 bg-gray-200 p-2 rounded">Đăng xuất</button>
+                    <div class="relative group">
+                        <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + user.email}" class="w-10 h-10 rounded-full cursor-pointer border shadow-sm">
+                        <div class="absolute right-0 mt-2 w-48 bg-white shadow-xl rounded-lg p-4 border hidden group-hover:block">
+                            <p class="text-xs truncate mb-2 font-bold">${user.email}</p>
+                            <p class="text-sm py-1 cursor-pointer hover:text-blue-500">Số dư: 0đ</p>
+                            <p class="text-sm py-1 cursor-pointer hover:text-blue-500">Yêu thích</p>
+                            <button onclick="signOut(auth).then(()=>location.reload())" class="w-full mt-2 bg-gray-100 p-1 rounded text-sm">Đăng xuất</button>
                         </div>
                     </div>
                 `;
-                document.getElementById('page-auth').classList.add('hidden');
-                document.getElementById('page-home').classList.remove('hidden');
+                showPage('home');
+            } else {
+                nav.innerHTML = `<button onclick="showPage('auth')" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>`;
             }
         });
-
-        window.showPage = (p) => {
-            document.getElementById('page-home').classList.add('hidden');
-            document.getElementById('page-auth').classList.remove('hidden');
-        };
     </script>
 </body>
 </html>
