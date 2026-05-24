@@ -2,17 +2,14 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Final Fix</title>
+    <title>My Store - Final Full</title>
 </head>
 <body class="bg-gray-50">
 
     <nav class="flex justify-between items-center p-6 bg-white shadow-sm sticky top-0 z-50">
         <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="window.showPage('home')">MY STORE</h1>
-        <div id="auth-nav">
-            <button id="btn-show-auth" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>
-        </div>
+        <div id="auth-nav"><button id="btn-show-auth" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button></div>
     </nav>
 
     <div id="app" class="p-6">
@@ -20,89 +17,94 @@
             <script>
                 for(let i=1; i<=20; i++) {
                     document.write(`
-                        <div class="bg-white p-4 rounded-xl shadow-md border hover:shadow-lg transition">
+                        <div class="bg-white p-4 rounded-xl shadow border relative">
                             <div class="h-40 bg-gray-200 mb-4 rounded"></div>
                             <h3 class="font-bold">Sản phẩm ${i}</h3>
-                            <p class="text-red-500 font-semibold cursor-pointer">500.000đ</p>
-                            <button class="float-right text-xl text-gray-500">...</button>
+                            <p class="text-red-500 font-semibold">500.000đ</p>
+                            <button class="menu-trigger absolute top-2 right-2 text-xl font-bold" data-id="${i}">...</button>
+                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-xl p-4 rounded border z-40 w-40">
+                                <div class="flex justify-between mb-2"><span class="font-bold">Tùy chọn</span><button class="close-menu text-gray-400">✕</button></div>
+                                <p class="cursor-pointer hover:text-blue-500 wish-btn" data-id="${i}">Thêm yêu thích</p>
+                                <p class="cursor-pointer hover:text-blue-500 detail-btn" data-id="${i}">Xem chi tiết</p>
+                            </div>
                         </div>
                     `);
                 }
             </script>
         </div>
 
+        <div id="page-wishlist" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Danh sách yêu thích</h2>
+            <div id="wishlist-container" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
+        </div>
+
+        <div id="page-detail" class="hidden bg-white p-8 rounded-xl shadow max-w-lg mx-auto">
+            <h2 id="detail-title" class="text-3xl font-bold"></h2>
+            <p class="text-xl text-red-600 mt-4">Giá: 500.000đ</p>
+            <button onclick="window.showPage('home')" class="mt-6 text-blue-500 underline">Quay lại</button>
+        </div>
+
         <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
             <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
-            <input id="email" type="text" placeholder="Email" class="w-full p-3 border mb-4 rounded outline-none">
-            <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded outline-none">
+            <input id="email" type="text" placeholder="Email" class="w-full p-3 border mb-4 rounded">
+            <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded">
             <button id="auth-action-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
-            <button id="google-login-btn" class="w-full bg-red-500 text-white p-3 rounded-lg">Google</button>
-            <p id="toggle-text" class="mt-4 text-center cursor-pointer text-blue-500 hover:underline">Chưa có tài khoản? Đăng ký</p>
+            <p id="toggle-text" class="text-center cursor-pointer text-blue-500">Chưa có tài khoản? Đăng ký</p>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-        const auth = getAuth(initializeApp({
-            apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
-            authDomain: "banhang-b31dd.firebaseapp.com",
-            projectId: "banhang-b31dd",
-            storageBucket: "banhang-b31dd.firebasestorage.app",
-            messagingSenderId: "634655097273",
-            appId: "1:634655097273:web:899337e325e046eb91f668"
-        }));
+        const auth = getAuth(initializeApp({ /* Config của bạn */ }));
+        let wishlist = [];
 
-        // Gán vào window để HTML gọi được trực tiếp
-        window.showPage = (page) => {
-            document.getElementById('page-home').classList.add('hidden');
-            document.getElementById('page-auth').classList.add('hidden');
-            document.getElementById('page-' + page).classList.remove('hidden');
+        window.showPage = (p) => {
+            ['home', 'wishlist', 'detail', 'auth'].forEach(id => document.getElementById('page-'+id).classList.add('hidden'));
+            document.getElementById('page-'+p).classList.remove('hidden');
         };
 
-        // Gán sự kiện cho các nút cố định
-        document.getElementById('btn-show-auth').onclick = () => window.showPage('auth');
-        
-        // Logic Auth
-        let isLogin = true;
-        document.getElementById('toggle-text').onclick = () => {
-            isLogin = !isLogin;
-            document.getElementById('auth-title').innerText = isLogin ? "Đăng nhập" : "Đăng ký";
-            document.getElementById('auth-action-btn').innerText = isLogin ? "Đăng nhập" : "Đăng ký";
-            document.getElementById('toggle-text').innerText = isLogin ? "Chưa có tài khoản? Đăng ký" : "Đã có tài khoản? Đăng nhập";
-        };
+        // MENU SẢN PHẨM & CLICK NGOÀI
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.menu-trigger')) {
+                const id = e.target.dataset.id;
+                document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
+                document.getElementById('menu-'+id).classList.remove('hidden');
+            } else if (e.target.closest('.close-menu') || (!e.target.closest('.menu-trigger') && !e.target.closest('[id^="menu-"]'))) {
+                document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
+            }
+        });
 
-        document.getElementById('auth-action-btn').onclick = async () => {
-            let email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('pass').value;
-            if (!email.includes('@')) email += '@gmail.com';
-            try {
-                if (isLogin) await signInWithEmailAndPassword(auth, email, pass);
-                else await createUserWithEmailAndPassword(auth, email, pass);
-            } catch (err) { alert(err.message); }
-        };
+        // YÊU THÍCH
+        document.querySelectorAll('.wish-btn').forEach(btn => {
+            btn.onclick = () => { wishlist.push(btn.dataset.id); alert("Đã thêm!"); };
+        });
 
-        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
+        // CHI TIẾT
+        document.querySelectorAll('.detail-btn').forEach(btn => {
+            btn.onclick = () => { document.getElementById('detail-title').innerText = "Sản phẩm " + btn.dataset.id; window.showPage('detail'); };
+        });
 
+        // AUTH & POPUP
         onAuthStateChanged(auth, (user) => {
-            const nav = document.getElementById('auth-nav');
             if (user) {
-                nav.innerHTML = `
+                document.getElementById('auth-nav').innerHTML = `
                     <div class="relative">
-                        <img id="avatar-btn" src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + user.email}" class="w-10 h-10 rounded-full cursor-pointer border shadow-sm">
-                        <div id="user-popup" class="hidden absolute right-0 mt-2 w-56 bg-white shadow-xl rounded-xl p-4 border z-50">
-                            <p class="text-xs font-bold truncate mb-2">${user.email}</p>
-                            <button id="logout-btn" class="w-full bg-red-100 text-red-600 py-1 rounded text-sm font-bold">Đăng xuất</button>
+                        <img id="avatar-btn" src="https://ui-avatars.com/api/?name=${user.email}" class="w-10 h-10 rounded-full cursor-pointer">
+                        <div id="user-popup" class="hidden absolute right-0 mt-2 w-64 bg-white p-4 shadow-xl rounded-xl border">
+                            <div class="flex justify-between mb-2"><span>Số dư: 0đ</span><button id="close-popup" class="text-gray-400">✕</button></div>
+                            <p id="go-wishlist" class="cursor-pointer hover:text-blue-500 py-1">Danh sách yêu thích</p>
+                            <button id="logout-btn" class="w-full mt-2 bg-red-100 text-red-600 py-1 rounded">Đăng xuất</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 document.getElementById('avatar-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('user-popup').classList.toggle('hidden'); };
+                document.getElementById('close-popup').onclick = () => document.getElementById('user-popup').classList.add('hidden');
+                document.getElementById('go-wishlist').onclick = () => {
+                    document.getElementById('wishlist-container').innerHTML = wishlist.map(id => `<div class="p-4 border">Sản phẩm ${id}</div>`).join('');
+                    window.showPage('wishlist');
+                };
                 document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
-                window.showPage('home');
-            } else {
-                nav.innerHTML = `<button id="btn-show-auth" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>`;
-                document.getElementById('btn-show-auth').onclick = () => window.showPage('auth');
             }
         });
     </script>
