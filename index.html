@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Shop Phone</title>
+</head>
+<body>
+
+<h2 id="status">Chưa đăng nhập</h2>
+
+<button onclick="loginGoogle()">Login Google</button>
+<button onclick="logout()">Logout</button>
+
+<hr>
+
+<h3>Thêm sản phẩm (admin giả lập)</h3>
+<input id="name" placeholder="Tên sản phẩm">
+<input id="price" placeholder="Giá">
+<button onclick="addProduct()">Add</button>
+
+<hr>
+
+<h3>Sản phẩm</h3>
+<div id="products"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyBUyF...",
+  authDomain: "banhang-fe024.firebaseapp.com",
+  projectId: "banhang-fe024",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+
+// LOGIN GOOGLE
+window.loginGoogle = async function () {
+  await signInWithPopup(auth, provider);
+};
+
+// LOGOUT
+window.logout = async function () {
+  await signOut(auth);
+};
+
+// CHECK USER
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  document.getElementById("status").innerText =
+    user ? "Xin chào: " + user.email : "Chưa đăng nhập";
+});
+
+// ADD PRODUCT
+window.addProduct = async function () {
+  if (!currentUser) return alert("Phải login");
+
+  const name = document.getElementById("name").value;
+  const price = document.getElementById("price").value;
+
+  await addDoc(collection(db, "products"), {
+    name,
+    price,
+    createdAt: Date.now()
+  });
+};
+
+// REALTIME LOAD PRODUCTS
+onSnapshot(collection(db, "products"), (snapshot) => {
+  let html = "";
+  snapshot.forEach(doc => {
+    const p = doc.data();
+    html += `
+      <div style="border:1px solid #ccc; padding:10px; margin:5px">
+        <b>${p.name}</b><br>
+        Giá: ${p.price} đ<br>
+        <button onclick="addCart('${p.name}', '${p.price}')">Mua</button>
+      </div>
+    `;
+  });
+  document.getElementById("products").innerHTML = html;
+});
+
+// CART (LOCAL)
+window.addCart = function(name, price) {
+  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+  cart.push({ name, price });
+  localStorage.setItem("cart", JSON.stringify(cart));
+  alert("Đã thêm vào giỏ");
+};
+</script>
+
+</body>
+</html>
