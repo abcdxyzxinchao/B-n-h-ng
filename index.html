@@ -35,7 +35,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -47,11 +48,15 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-// FIREBASE CONFIG
+/* ================= FIREBASE CONFIG CHÍNH ================= */
 const firebaseConfig = {
-  apiKey: "AIzaSyBUyF...",
-  authDomain: "banhang-fe024.firebaseapp.com",
-  projectId: "banhang-fe024",
+  apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
+  authDomain: "banhang-b31dd.firebaseapp.com",
+  projectId: "banhang-b31dd",
+  storageBucket: "banhang-b31dd.firebasestorage.app",
+  messagingSenderId: "634655097273",
+  appId: "1:634655097273:web:899337e325e046eb91f668",
+  measurementId: "G-283TYMKMXB"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -61,22 +66,28 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
-/* ================= LOGIN ================= */
-window.loginGoogle = async () => {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    console.log("LOGIN ERROR:", e.code, e.message);
-    alert(e.message);
-  }
+/* ================= LOGIN GOOGLE (FIXED) ================= */
+window.loginGoogle = () => {
+  signInWithRedirect(auth, provider);
 };
+
+/* ================= HANDLE REDIRECT RESULT ================= */
+getRedirectResult(auth)
+  .then((result) => {
+    if (result?.user) {
+      console.log("LOGIN OK:", result.user.email);
+    }
+  })
+  .catch((e) => {
+    console.log("LOGIN ERROR:", e.code, e.message);
+  });
 
 /* ================= LOGOUT ================= */
 window.logout = async () => {
   await signOut(auth);
 };
 
-/* ================= USER STATE ================= */
+/* ================= AUTH STATE ================= */
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   document.getElementById("status").innerText =
