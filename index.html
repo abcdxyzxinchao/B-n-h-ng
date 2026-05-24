@@ -2,47 +2,35 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Shop Pro Full</title>
+  <title>Shop Clean Pro</title>
 </head>
 <body>
 
-<!-- USER AREA -->
-<div id="authArea">
-  <button onclick="loginGoogle()">Login Google</button>
-</div>
+<h2 id="status">Loading...</h2>
 
-<div id="userBox" style="display:none;cursor:pointer;">
-  <img id="avatar" width="40" style="border-radius:50%">
-</div>
-
-<div id="menu" style="display:none;border:1px solid #ccc;padding:10px;">
-  <p id="userEmail"></p>
-  <p id="balance"></p>
-  <p id="stats"></p>
-  <button onclick="openWishlist()">❤️ Wishlist</button>
-  <button onclick="logout()">Logout</button>
-</div>
+<button id="loginBtn">Login Google</button>
+<button id="logoutBtn">Logout</button>
 
 <hr>
-
-<!-- PRODUCT -->
-<h3>Add Product</h3>
-<input id="name" placeholder="name">
-<input id="price" placeholder="price">
-<button onclick="addProduct()">Add</button>
 
 <h3>Products</h3>
 <div id="products"></div>
 
 <hr>
 
-<!-- CART -->
 <h3>Cart</h3>
-<button onclick="checkout()">Checkout</button>
 <div id="cart"></div>
+<button id="checkoutBtn">Checkout</button>
 
-<!-- WISHLIST PAGE -->
-<div id="wishlistPage" style="display:none;"></div>
+<hr>
+
+<h3>Profile</h3>
+<div id="profile">
+  <img id="avatar" width="50" style="border-radius:50%">
+  <p id="email"></p>
+  <p id="balance"></p>
+  <p id="orders"></p>
+</div>
 
 <script type="module">
 
@@ -50,8 +38,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -70,7 +57,10 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
   authDomain: "banhang-b31dd.firebaseapp.com",
-  projectId: "banhang-b31dd"
+  projectId: "banhang-b31dd",
+  storageBucket: "banhang-b31dd.firebasestorage.app",
+  messagingSenderId: "634655097273",
+  appId: "1:634655097273:web:899337e325e046eb91f668"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -78,110 +68,113 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-let user = null;
+let currentUser = null;
 let cart = [];
 
-/* ================= LOGIN ================= */
-window.loginGoogle = () => {
-  signInWithRedirect(auth, provider);
+/* ================= AUTH ================= */
+document.getElementById("loginBtn").onclick = async () => {
+  await signInWithPopup(auth, provider);
 };
 
-getRedirectResult(auth).catch(console.error);
+document.getElementById("logoutBtn").onclick = async () => {
+  await signOut(auth);
+};
 
-/* ================= AUTH STATE ================= */
-onAuthStateChanged(auth, async (u) => {
-  user = u;
-  if (!u) return;
+/* ================= USER STATE ================= */
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
 
-  authArea.style.display = "none";
-  userBox.style.display = "block";
-  avatar.src = u.photoURL;
+  if (!user) {
+    document.getElementById("status").innerText = "Not logged in";
+    return;
+  }
 
-  userEmail.innerText = u.email;
+  document.getElementById("status").innerText = "Logged in";
 
-  await createUserIfNotExists(u);
-  loadUserData(u.uid);
+  document.getElementById("avatar").src = user.photoURL;
+  document.getElementById("email").innerText = user.email;
+
+  await createUser(user);
+  await loadProfile(user.uid);
 });
 
-/* ================= USER CREATE ================= */
-async function createUserIfNotExists(u) {
-  const ref = doc(db, "users", u.uid);
+/* ================= CREATE USER ================= */
+async function createUser(user) {
+  const ref = doc(db, "users", user.uid);
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
     await setDoc(ref, {
-      email: u.email,
-      photoURL: u.photoURL,
+      email: user.email,
       balance: 0,
-      totalOrders: 0
+      orders: 0
     });
   }
 }
 
-/* ================= LOAD USER ================= */
-async function loadUserData(uid) {
+/* ================= PROFILE ================= */
+async function loadProfile(uid) {
   const ref = doc(db, "users", uid);
   const snap = await getDoc(ref);
+
   const data = snap.data();
 
-  balance.innerText = "Balance: " + data.balance;
-  stats.innerText = "Orders: " + data.totalOrders;
+  document.getElementById("balance").innerText =
+    "Balance: " + data.balance;
+
+  document.getElementById("orders").innerText =
+    "Orders: " + data.orders;
 }
 
-/* ================= MENU ================= */
-userBox.onclick = () => {
-  menu.style.display = menu.style.display === "none" ? "block" : "none";
-};
-
-/* ================= LOGOUT ================= */
-window.logout = () => signOut(auth);
-
 /* ================= PRODUCTS ================= */
-window.addProduct = async () => {
-  if (!user) return;
-
-  await addDoc(collection(db, "products"), {
-    name: name.value,
-    price: price.value,
-    createdAt: Date.now()
-  });
-};
-
 onSnapshot(collection(db, "products"), (snap) => {
-  let html = "";
+  const container = document.getElementById("products");
+  container.innerHTML = "";
 
   snap.forEach(d => {
-    let p = d.data();
+    const p = d.data();
 
-    html += `
-      <div style="border:1px solid #ccc;margin:5px;padding:10px">
-        <b>${p.name}</b><br>
-        ${p.price} đ<br>
-        <button onclick="addToCart('${p.name}',${p.price})">Cart</button>
-        <button onclick="addToWishlist('${d.id}')">❤️</button>
-      </div>
+    const div = document.createElement("div");
+    div.style.border = "1px solid #ccc";
+    div.style.margin = "5px";
+    div.style.padding = "10px";
+
+    div.innerHTML = `
+      <b>${p.name}</b><br>
+      ${p.price} đ<br>
+      <button>Add Cart</button>
     `;
-  });
 
-  products.innerHTML = html;
+    div.querySelector("button").onclick = () => {
+      cart.push(p);
+      renderCart();
+    };
+
+    container.appendChild(div);
+  });
 });
 
 /* ================= CART ================= */
-window.addToCart = (name, price) => {
-  cart.push({ name, price });
-  renderCart();
-};
-
 function renderCart() {
-  cartDiv.innerHTML = cart.map(i => i.name + " - " + i.price).join("<br>");
+  const cartDiv = document.getElementById("cart");
+
+  let total = 0;
+  cartDiv.innerHTML = "";
+
+  cart.forEach(i => {
+    total += Number(i.price);
+    cartDiv.innerHTML += `${i.name} - ${i.price} đ<br>`;
+  });
+
+  cartDiv.innerHTML += "<hr>Total: " + total;
 }
 
 /* ================= CHECKOUT ================= */
-window.checkout = async () => {
-  if (!user) return;
+document.getElementById("checkoutBtn").onclick = async () => {
+  if (!currentUser) return alert("Login first");
 
   await addDoc(collection(db, "orders"), {
-    uid: user.uid,
+    uid: currentUser.uid,
     items: cart,
     total: cart.reduce((s,i)=>s+Number(i.price),0),
     createdAt: Date.now()
@@ -189,48 +182,11 @@ window.checkout = async () => {
 
   cart = [];
   renderCart();
-};
 
-/* ================= WISHLIST ================= */
-window.addToWishlist = async (pid) => {
-  const ref = doc(db, "wishlist", user.uid);
-  const snap = await getDoc(ref);
-
-  let items = snap.exists() ? snap.data().items : [];
-
-  if (!items.includes(pid)) items.push(pid);
-
-  await setDoc(ref, { items });
-};
-
-window.openWishlist = async () => {
-  const ref = doc(db, "wishlist", user.uid);
-  const snap = await getDoc(ref);
-
-  let items = snap.exists() ? snap.data().items : [];
-
-  wishlistPage.style.display = "block";
-  products.style.display = "none";
-
-  wishlistPage.innerHTML =
-    "<h3>Wishlist</h3>" +
-    items.map(i => `<div>❤️ ${i}</div>`).join("");
+  alert("Order success");
 };
 
 </script>
-
-<!-- DOM -->
-<div id="authArea"></div>
-<div id="userBox"><img id="avatar"></div>
-
-<p id="userEmail"></p>
-<p id="balance"></p>
-<p id="stats"></p>
-
-<div id="menu" style="display:none"></div>
-
-<div id="products"></div>
-<div id="cartDiv"></div>
 
 </body>
 </html>
