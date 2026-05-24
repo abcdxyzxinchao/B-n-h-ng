@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Shop Phone</title>
+  <title>Shop Phone Pro</title>
 </head>
 <body>
 
@@ -13,7 +13,7 @@
 
 <hr>
 
-<h3>Thêm sản phẩm (admin giả lập)</h3>
+<h3>Thêm sản phẩm</h3>
 <input id="name" placeholder="Tên sản phẩm">
 <input id="price" placeholder="Giá">
 <button onclick="addProduct()">Add</button>
@@ -23,7 +23,14 @@
 <h3>Sản phẩm</h3>
 <div id="products"></div>
 
+<hr>
+
+<h3>Giỏ hàng</h3>
+<button onclick="showCart()">Xem giỏ</button>
+<div id="cart"></div>
+
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import {
   getAuth,
@@ -40,7 +47,7 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-// Firebase config
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyBUyF...",
   authDomain: "banhang-fe024.firebaseapp.com",
@@ -54,25 +61,30 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
-// LOGIN GOOGLE
-window.loginGoogle = async function () {
-  await signInWithPopup(auth, provider);
+/* ================= LOGIN ================= */
+window.loginGoogle = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    console.log("LOGIN ERROR:", e.code, e.message);
+    alert(e.message);
+  }
 };
 
-// LOGOUT
-window.logout = async function () {
+/* ================= LOGOUT ================= */
+window.logout = async () => {
   await signOut(auth);
 };
 
-// CHECK USER
+/* ================= USER STATE ================= */
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   document.getElementById("status").innerText =
     user ? "Xin chào: " + user.email : "Chưa đăng nhập";
 });
 
-// ADD PRODUCT
-window.addProduct = async function () {
+/* ================= ADD PRODUCT ================= */
+window.addProduct = async () => {
   if (!currentUser) return alert("Phải login");
 
   const name = document.getElementById("name").value;
@@ -85,29 +97,49 @@ window.addProduct = async function () {
   });
 };
 
-// REALTIME LOAD PRODUCTS
-onSnapshot(collection(db, "products"), (snapshot) => {
+/* ================= LOAD PRODUCTS ================= */
+onSnapshot(collection(db, "products"), (snap) => {
   let html = "";
-  snapshot.forEach(doc => {
+
+  snap.forEach(doc => {
     const p = doc.data();
+
     html += `
-      <div style="border:1px solid #ccc; padding:10px; margin:5px">
+      <div style="border:1px solid #ccc;padding:10px;margin:5px">
         <b>${p.name}</b><br>
         Giá: ${p.price} đ<br>
-        <button onclick="addCart('${p.name}', '${p.price}')">Mua</button>
+        <button onclick="addCart('${p.name}','${p.price}')">Mua</button>
       </div>
     `;
   });
+
   document.getElementById("products").innerHTML = html;
 });
 
-// CART (LOCAL)
-window.addCart = function(name, price) {
+/* ================= CART ================= */
+window.addCart = (name, price) => {
   let cart = JSON.parse(localStorage.getItem("cart") || "[]");
   cart.push({ name, price });
   localStorage.setItem("cart", JSON.stringify(cart));
   alert("Đã thêm vào giỏ");
 };
+
+window.showCart = () => {
+  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+  let total = 0;
+  let html = "";
+
+  cart.forEach(i => {
+    html += `${i.name} - ${i.price} đ<br>`;
+    total += Number(i.price);
+  });
+
+  html += "<hr>Tổng: " + total + " đ";
+
+  document.getElementById("cart").innerHTML = html;
+};
+
 </script>
 
 </body>
