@@ -2,8 +2,9 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>Web Siêu Đẹp</title>
+    <title>My Store</title>
 </head>
 <body class="bg-gray-50">
 
@@ -19,11 +20,11 @@
             <script>
                 for(let i=1; i<=20; i++) {
                     document.write(`
-                        <div class="bg-white p-4 rounded-xl shadow-md">
+                        <div class="bg-white p-4 rounded-xl shadow-md border border-gray-100">
                             <div class="h-40 bg-gray-200 mb-4 rounded"></div>
                             <h3 class="font-bold">Sản phẩm ${i}</h3>
                             <p class="text-red-500 font-semibold cursor-pointer" onclick="alert('Mở modal mua ngay')">500.000đ</p>
-                            <button class="float-right text-xl" onclick="alert('Menu: Thêm yêu thích / Xem chi tiết')">...</button>
+                            <button class="float-right text-xl text-gray-500" onclick="alert('Menu: Thêm yêu thích / Xem chi tiết')">...</button>
                         </div>
                     `);
                 }
@@ -32,18 +33,16 @@
 
         <div id="page-login" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
             <h2 class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
-            <input type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded">
-            <input type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded">
+            <input type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded focus:ring-2 outline-none">
+            <input type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded focus:ring-2 outline-none">
             <button class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
-            <button class="w-full bg-red-500 text-white p-3 rounded-lg" onclick="alert('Kết nối Firebase Google Auth')">Đăng nhập bằng Google</button>
-            <p class="mt-4 text-center">Chưa có tài khoản? <a href="#" onclick="showPage('register')" class="text-blue-500">Đăng ký</a></p>
+            <button class="w-full bg-red-500 text-white p-3 rounded-lg" onclick="loginGoogle()">Đăng nhập bằng Google</button>
         </div>
     </div>
 
     <script type="module">
-        // Import Firebase từ CDN
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
@@ -56,21 +55,31 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-        // Logic chuyển trang
+        // Chuyển trang
         window.showPage = (page) => {
             document.getElementById('page-home').classList.add('hidden');
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('page-' + page).classList.remove('hidden');
         };
 
-        // Lắng nghe trạng thái đăng nhập
+        // Đăng nhập Google
+        window.loginGoogle = () => {
+            signInWithPopup(auth, provider).catch(err => alert(err.message));
+        };
+
+        // Đăng xuất
+        window.logout = () => signOut(auth).then(() => location.reload());
+
+        // Trạng thái đăng nhập
         onAuthStateChanged(auth, (user) => {
+            const nav = document.getElementById('auth-nav');
             if (user) {
-                document.getElementById('auth-nav').innerHTML = `
+                nav.innerHTML = `
                     <div class="flex items-center gap-4">
-                        <span>${user.email}</span>
-                        <div class="w-10 h-10 bg-blue-500 rounded-full cursor-pointer" onclick="alert('Popup: Số dư: 0đ | Đơn hàng yêu thích | Đăng xuất')"></div>
+                        <span class="text-sm">${user.displayName || user.email}</span>
+                        <img src="${user.photoURL}" class="w-10 h-10 rounded-full cursor-pointer border" onclick="logout()" title="Đăng xuất">
                     </div>
                 `;
                 showPage('home');
