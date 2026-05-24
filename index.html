@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Final Version</title>
+    <title>My Store - Full Final</title>
 </head>
 <body class="bg-gray-50">
 
@@ -33,7 +33,7 @@
 
         <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
             <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
-            <input id="email" type="email" placeholder="Email" class="w-full p-3 border mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400">
+            <input id="email" type="text" placeholder="Email (ví dụ: user hoặc user@gmail.com)" class="w-full p-3 border mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400">
             <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400">
             <button id="auth-action-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
             <button id="google-login-btn" class="w-full bg-red-500 text-white p-3 rounded-lg">Đăng nhập bằng Google</button>
@@ -45,17 +45,14 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-        const firebaseConfig = {
+        const auth = getAuth(initializeApp({
             apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
             authDomain: "banhang-b31dd.firebaseapp.com",
             projectId: "banhang-b31dd",
             storageBucket: "banhang-b31dd.firebasestorage.app",
             messagingSenderId: "634655097273",
             appId: "1:634655097273:web:899337e325e046eb91f668"
-        };
-
-        const auth = getAuth(initializeApp(firebaseConfig));
-        const provider = new GoogleAuthProvider();
+        }));
 
         // 1. Chuyển trang
         function showPage(page) {
@@ -75,19 +72,21 @@
         };
 
         document.getElementById('auth-action-btn').onclick = async () => {
-            const email = document.getElementById('email').value;
+            let email = document.getElementById('email').value.trim();
             const pass = document.getElementById('pass').value;
+            if (!email.includes('@')) email += '@gmail.com';
+            
             try {
                 if (isLogin) await signInWithEmailAndPassword(auth, email, pass);
                 else await createUserWithEmailAndPassword(auth, email, pass);
-            } catch (err) { alert(err.message); }
+            } catch (err) { alert("Lỗi: " + err.message); }
         };
 
-        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, provider);
+        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
         document.getElementById('nav-brand').onclick = () => showPage('home');
         document.getElementById('btn-show-auth').onclick = () => showPage('auth');
 
-        // 3. Trạng thái Login & Popup
+        // 3. Trạng thái Login
         onAuthStateChanged(auth, (user) => {
             const nav = document.getElementById('auth-nav');
             if (user) {
@@ -105,17 +104,11 @@
                         </div>
                     </div>
                 `;
-                
-                // Logic Popup
                 const popup = document.getElementById('user-popup');
                 document.getElementById('avatar-btn').onclick = (e) => { e.stopPropagation(); popup.classList.remove('hidden'); };
                 document.getElementById('close-popup').onclick = () => popup.classList.add('hidden');
                 document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
-                
-                document.addEventListener('click', (e) => {
-                    if (!popup.contains(e.target) && e.target.id !== 'avatar-btn') popup.classList.add('hidden');
-                });
-                
+                document.addEventListener('click', (e) => { if (!popup.contains(e.target) && e.target.id !== 'avatar-btn') popup.classList.add('hidden'); });
                 showPage('home');
             } else {
                 nav.innerHTML = `<button id="btn-show-auth" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>`;
