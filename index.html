@@ -2,14 +2,13 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Pro UI</title>
+    <title>My Store - Final Unified</title>
 </head>
 <body class="bg-gray-50">
 
     <nav class="flex justify-between items-center p-6 bg-white shadow-sm sticky top-0 z-50">
-        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" id="nav-brand">MY STORE</h1>
+        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="window.showPage('home')">MY STORE</h1>
         <div id="auth-nav">
             <button id="btn-show-auth" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button>
         </div>
@@ -23,62 +22,67 @@
                         <div class="bg-white p-4 rounded-xl shadow-md border relative">
                             <div class="h-40 bg-gray-200 mb-4 rounded"></div>
                             <h3 class="font-bold">Sản phẩm ${i}</h3>
-                            <p class="text-red-500 font-semibold cursor-pointer">500.000đ</p>
-                            <button class="menu-trigger absolute top-2 right-2 text-xl text-gray-500 font-bold p-2" data-id="${i}">...</button>
-                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-xl p-4 rounded-xl border z-40 w-40">
-                                <div class="flex justify-between mb-2">
-                                    <span class="font-bold">Tùy chọn</span>
-                                    <button class="close-menu text-gray-400">✕</button>
-                                </div>
-                                <p class="cursor-pointer hover:text-blue-500 p-1 wish-btn" data-id="${i}">Yêu thích</p>
-                                <p class="cursor-pointer hover:text-blue-500 p-1 detail-btn" data-id="${i}">Chi tiết</p>
+                            <button class="menu-trigger absolute top-2 right-2 text-xl font-bold p-2" data-id="${i}">...</button>
+                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-xl p-4 rounded-xl border z-50 w-40">
+                                <div class="flex justify-between mb-2"><span class="font-bold">Tùy chọn</span><button class="close-menu text-gray-400">✕</button></div>
+                                <p class="cursor-pointer wish-btn" data-id="${i}">Yêu thích</p>
+                                <p class="cursor-pointer detail-btn" data-id="${i}">Chi tiết</p>
                             </div>
                         </div>
                     `);
                 }
             </script>
         </div>
-        <div id="page-wishlist" class="hidden">...</div>
-        <div id="page-detail" class="hidden">...</div>
-        <div id="page-auth" class="hidden">...</div>
+
+        <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
+            <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
+            <input id="email" type="text" placeholder="Email" class="w-full p-3 border mb-4 rounded">
+            <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded">
+            <button id="auth-action-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
+            <button id="google-login-btn" class="w-full bg-red-500 text-white p-3 rounded-lg">Google</button>
+        </div>
     </div>
 
     <script type="module">
-        // ... (Imports Firebase giữ nguyên)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-        // HÀM ĐÓNG MỌI CỬA SỔ
-        const closeAllMenus = () => {
-            document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
-            const userPopup = document.getElementById('user-popup');
-            if (userPopup) userPopup.classList.add('hidden');
+        const auth = getAuth(initializeApp({ /* CẤU HÌNH CỦA BẠN */ }));
+
+        // ĐIỀU HƯỚNG CHUNG
+        window.showPage = (p) => {
+            ['page-home', 'page-auth'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById('page-' + p).classList.remove('hidden');
         };
 
-        // Lắng nghe click ngoài vùng (Global Close)
+        // ĐÓNG MENU THÔNG MINH
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.menu-trigger') && !e.target.closest('[id^="menu-"]') && !e.target.closest('#avatar-btn')) {
-                closeAllMenus();
+            // Nếu click không trúng menu và không trúng nút mở menu thì đóng tất cả
+            if (!e.target.closest('.menu-trigger') && !e.target.closest('[id^="menu-"]')) {
+                document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
             }
         });
 
-        // Xử lý nút X trong menu sản phẩm
-        document.querySelectorAll('.close-menu').forEach(btn => {
-            btn.onclick = (e) => { e.stopPropagation(); closeAllMenus(); };
-        });
-
-        // Kích hoạt menu sản phẩm
+        // XỬ LÝ MENU
         document.querySelectorAll('.menu-trigger').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                closeAllMenus();
-                document.getElementById('menu-' + btn.dataset.id).classList.remove('hidden');
-            };
+            btn.onclick = (e) => { e.stopPropagation(); document.getElementById('menu-' + btn.dataset.id).classList.toggle('hidden'); };
+        });
+        document.querySelectorAll('.close-menu').forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); e.target.closest('[id^="menu-"]').classList.add('hidden'); };
         });
 
-        // Xử lý Popup Avatar (tương tự như trên)
-        // Khi user đã đăng nhập, bạn gán sự kiện cho avatar:
-        // document.getElementById('avatar-btn').onclick = (e) => { e.stopPropagation(); closeAllMenus(); document.getElementById('user-popup').classList.remove('hidden'); };
+        // NÚT ĐĂNG NHẬP
+        document.getElementById('btn-show-auth').onclick = () => window.showPage('auth');
+        
+        // LOGIC AUTH
+        document.getElementById('auth-action-btn').onclick = async () => {
+            const email = document.getElementById('email').value + (document.getElementById('email').value.includes('@') ? '' : '@gmail.com');
+            const pass = document.getElementById('pass').value;
+            try { await signInWithEmailAndPassword(auth, email, pass); } catch(e) { alert(e.message); }
+        };
 
-        // ... (Các logic Auth và Render khác giữ nguyên)
+        // LOGIN GOOGLE
+        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
     </script>
 </body>
 </html>
