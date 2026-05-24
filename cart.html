@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Giỏ hàng</h2>
+<div id="cart"></div>
+
+<script>
+let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+let html = "";
+let total = 0;
+
+cart.forEach(i => {
+  html += i.name + " - " + i.price + "<br>";
+  total += Number(i.price);
+});
+
+document.getElementById("cart").innerHTML =
+  html + "<hr>Tổng: " + total + "đ";
+</script>
+
+</body>
+</html>
