@@ -2,32 +2,47 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Shop Phone Pro</title>
+  <title>Shop Pro Full</title>
 </head>
 <body>
 
-<h2 id="status">Chưa đăng nhập</h2>
+<!-- USER AREA -->
+<div id="authArea">
+  <button onclick="loginGoogle()">Login Google</button>
+</div>
 
-<button onclick="loginGoogle()">Login Google</button>
-<button onclick="logout()">Logout</button>
+<div id="userBox" style="display:none;cursor:pointer;">
+  <img id="avatar" width="40" style="border-radius:50%">
+</div>
+
+<div id="menu" style="display:none;border:1px solid #ccc;padding:10px;">
+  <p id="userEmail"></p>
+  <p id="balance"></p>
+  <p id="stats"></p>
+  <button onclick="openWishlist()">❤️ Wishlist</button>
+  <button onclick="logout()">Logout</button>
+</div>
 
 <hr>
 
-<h3>Thêm sản phẩm</h3>
-<input id="name" placeholder="Tên sản phẩm">
-<input id="price" placeholder="Giá">
+<!-- PRODUCT -->
+<h3>Add Product</h3>
+<input id="name" placeholder="name">
+<input id="price" placeholder="price">
 <button onclick="addProduct()">Add</button>
 
-<hr>
-
-<h3>Sản phẩm</h3>
+<h3>Products</h3>
 <div id="products"></div>
 
 <hr>
 
-<h3>Giỏ hàng</h3>
-<button onclick="showCart()">Xem giỏ</button>
+<!-- CART -->
+<h3>Cart</h3>
+<button onclick="checkout()">Checkout</button>
 <div id="cart"></div>
+
+<!-- WISHLIST PAGE -->
+<div id="wishlistPage" style="display:none;"></div>
 
 <script type="module">
 
@@ -45,18 +60,17 @@ import {
   getFirestore,
   collection,
   addDoc,
-  onSnapshot
+  onSnapshot,
+  doc,
+  getDoc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-/* ================= FIREBASE CONFIG CHÍNH ================= */
+/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
   authDomain: "banhang-b31dd.firebaseapp.com",
-  projectId: "banhang-b31dd",
-  storageBucket: "banhang-b31dd.firebasestorage.app",
-  messagingSenderId: "634655097273",
-  appId: "1:634655097273:web:899337e325e046eb91f668",
-  measurementId: "G-283TYMKMXB"
+  projectId: "banhang-b31dd"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -64,94 +78,159 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-let currentUser = null;
+let user = null;
+let cart = [];
 
-/* ================= LOGIN GOOGLE (FIXED) ================= */
+/* ================= LOGIN ================= */
 window.loginGoogle = () => {
   signInWithRedirect(auth, provider);
 };
 
-/* ================= HANDLE REDIRECT RESULT ================= */
-getRedirectResult(auth)
-  .then((result) => {
-    if (result?.user) {
-      console.log("LOGIN OK:", result.user.email);
-    }
-  })
-  .catch((e) => {
-    console.log("LOGIN ERROR:", e.code, e.message);
-  });
-
-/* ================= LOGOUT ================= */
-window.logout = async () => {
-  await signOut(auth);
-};
+getRedirectResult(auth).catch(console.error);
 
 /* ================= AUTH STATE ================= */
-onAuthStateChanged(auth, (user) => {
-  currentUser = user;
-  document.getElementById("status").innerText =
-    user ? "Xin chào: " + user.email : "Chưa đăng nhập";
+onAuthStateChanged(auth, async (u) => {
+  user = u;
+  if (!u) return;
+
+  authArea.style.display = "none";
+  userBox.style.display = "block";
+  avatar.src = u.photoURL;
+
+  userEmail.innerText = u.email;
+
+  await createUserIfNotExists(u);
+  loadUserData(u.uid);
 });
 
-/* ================= ADD PRODUCT ================= */
-window.addProduct = async () => {
-  if (!currentUser) return alert("Phải login");
+/* ================= USER CREATE ================= */
+async function createUserIfNotExists(u) {
+  const ref = doc(db, "users", u.uid);
+  const snap = await getDoc(ref);
 
-  const name = document.getElementById("name").value;
-  const price = document.getElementById("price").value;
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      email: u.email,
+      photoURL: u.photoURL,
+      balance: 0,
+      totalOrders: 0
+    });
+  }
+}
+
+/* ================= LOAD USER ================= */
+async function loadUserData(uid) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  const data = snap.data();
+
+  balance.innerText = "Balance: " + data.balance;
+  stats.innerText = "Orders: " + data.totalOrders;
+}
+
+/* ================= MENU ================= */
+userBox.onclick = () => {
+  menu.style.display = menu.style.display === "none" ? "block" : "none";
+};
+
+/* ================= LOGOUT ================= */
+window.logout = () => signOut(auth);
+
+/* ================= PRODUCTS ================= */
+window.addProduct = async () => {
+  if (!user) return;
 
   await addDoc(collection(db, "products"), {
-    name,
-    price,
+    name: name.value,
+    price: price.value,
     createdAt: Date.now()
   });
 };
 
-/* ================= LOAD PRODUCTS ================= */
 onSnapshot(collection(db, "products"), (snap) => {
   let html = "";
 
-  snap.forEach(doc => {
-    const p = doc.data();
+  snap.forEach(d => {
+    let p = d.data();
 
     html += `
-      <div style="border:1px solid #ccc;padding:10px;margin:5px">
+      <div style="border:1px solid #ccc;margin:5px;padding:10px">
         <b>${p.name}</b><br>
-        Giá: ${p.price} đ<br>
-        <button onclick="addCart('${p.name}','${p.price}')">Mua</button>
+        ${p.price} đ<br>
+        <button onclick="addToCart('${p.name}',${p.price})">Cart</button>
+        <button onclick="addToWishlist('${d.id}')">❤️</button>
       </div>
     `;
   });
 
-  document.getElementById("products").innerHTML = html;
+  products.innerHTML = html;
 });
 
 /* ================= CART ================= */
-window.addCart = (name, price) => {
-  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+window.addToCart = (name, price) => {
   cart.push({ name, price });
-  localStorage.setItem("cart", JSON.stringify(cart));
-  alert("Đã thêm vào giỏ");
+  renderCart();
 };
 
-window.showCart = () => {
-  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+function renderCart() {
+  cartDiv.innerHTML = cart.map(i => i.name + " - " + i.price).join("<br>");
+}
 
-  let total = 0;
-  let html = "";
+/* ================= CHECKOUT ================= */
+window.checkout = async () => {
+  if (!user) return;
 
-  cart.forEach(i => {
-    html += `${i.name} - ${i.price} đ<br>`;
-    total += Number(i.price);
+  await addDoc(collection(db, "orders"), {
+    uid: user.uid,
+    items: cart,
+    total: cart.reduce((s,i)=>s+Number(i.price),0),
+    createdAt: Date.now()
   });
 
-  html += "<hr>Tổng: " + total + " đ";
+  cart = [];
+  renderCart();
+};
 
-  document.getElementById("cart").innerHTML = html;
+/* ================= WISHLIST ================= */
+window.addToWishlist = async (pid) => {
+  const ref = doc(db, "wishlist", user.uid);
+  const snap = await getDoc(ref);
+
+  let items = snap.exists() ? snap.data().items : [];
+
+  if (!items.includes(pid)) items.push(pid);
+
+  await setDoc(ref, { items });
+};
+
+window.openWishlist = async () => {
+  const ref = doc(db, "wishlist", user.uid);
+  const snap = await getDoc(ref);
+
+  let items = snap.exists() ? snap.data().items : [];
+
+  wishlistPage.style.display = "block";
+  products.style.display = "none";
+
+  wishlistPage.innerHTML =
+    "<h3>Wishlist</h3>" +
+    items.map(i => `<div>❤️ ${i}</div>`).join("");
 };
 
 </script>
+
+<!-- DOM -->
+<div id="authArea"></div>
+<div id="userBox"><img id="avatar"></div>
+
+<p id="userEmail"></p>
+<p id="balance"></p>
+<p id="stats"></p>
+
+<div id="menu" style="display:none"></div>
+
+<div id="products"></div>
+<div id="cartDiv"></div>
 
 </body>
 </html>
