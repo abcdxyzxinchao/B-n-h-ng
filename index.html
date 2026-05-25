@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Connected to Database</title>
+    <title>My Store - Live Admin</title>
 </head>
 <body class="bg-gray-50">
 
@@ -13,25 +13,33 @@
     </nav>
 
     <div id="app" class="p-6">
-        <div id="product-list" class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <p>Đang tải dữ liệu...</p>
+        <div id="page-home" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div id="product-container" class="contents"></div>
         </div>
 
-        <div id="page-admin" class="hidden bg-white p-8 rounded-2xl shadow-lg border-2 border-red-200">
+        <div id="page-admin" class="hidden bg-white p-8 rounded-2xl shadow-lg border-2 border-red-200 max-w-2xl mx-auto">
             <h2 class="text-2xl font-bold text-red-600 mb-6">Quản trị hệ thống</h2>
             <div class="space-y-4">
-                <input id="new-name" type="text" placeholder="Tên sản phẩm" class="w-full p-2 border">
-                <input id="new-price" type="number" placeholder="Giá" class="w-full p-2 border">
-                <button id="add-btn" class="bg-blue-600 text-white p-2 rounded w-full">Thêm vào Database</button>
+                <input id="new-name" type="text" placeholder="Tên sản phẩm" class="w-full p-2 border rounded">
+                <input id="new-price" type="number" placeholder="Giá" class="w-full p-2 border rounded">
+                <button id="add-product-btn" class="w-full bg-blue-600 text-white p-3 rounded">Thêm sản phẩm vào trang chủ</button>
             </div>
-            <button onclick="showPage('home')" class="mt-8 text-gray-500 underline">Đóng</button>
+            <button onclick="showPage('home')" class="mt-8 text-gray-500 underline">Quay lại</button>
+        </div>
+
+        <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
+            <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
+            <input id="email" type="text" placeholder="Email" class="w-full p-3 border mb-4 rounded">
+            <div class="relative mb-4"><input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border rounded"><button id="toggle-pass" class="absolute right-3 top-3">👁️</button></div>
+            <button id="auth-action-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
+            <button id="google-login-btn" class="w-full bg-red-500 text-white p-3 rounded-lg">Google</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const app = initializeApp({
             apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
@@ -41,37 +49,60 @@
             messagingSenderId: "634655097273",
             appId: "1:634655097273:web:899337e325e046eb91f668"
         });
-
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         // HÀM TẢI DỮ LIỆU
-        async function loadSanPham() {
-            const list = document.getElementById('product-list');
-            const snapshot = await getDocs(collection(db, "sanpham"));
-            list.innerHTML = "";
-            snapshot.forEach(doc => {
-                const sp = doc.data();
-                list.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow">
-                        <h3 class="font-bold">${sp.ten}</h3>
-                        <p class="text-red-500">${sp.gia}đ</p>
+        async function loadProducts() {
+            const container = document.getElementById('product-container');
+            const snap = await getDocs(collection(db, "sanpham"));
+            container.innerHTML = "";
+            snap.forEach(doc => {
+                const p = doc.data();
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow border">
+                        <div class="h-40 bg-gray-200 mb-4 rounded"></div>
+                        <h3 class="font-bold">${p.ten}</h3>
+                        <p class="text-red-500 font-semibold">${p.gia}đ</p>
+                        <button onclick="deleteProduct('${doc.id}')" class="text-red-500 text-xs">Xóa</button>
                     </div>`;
             });
         }
 
-        // HÀM THÊM SẢN PHẨM
-        document.getElementById('add-btn').onclick = async () => {
+        window.deleteProduct = async (id) => { await deleteDoc(doc(db, "sanpham", id)); loadProducts(); };
+        window.showPage = (p) => {
+            ['home', 'auth', 'admin'].forEach(id => document.getElementById('page-'+id).classList.add('hidden'));
+            document.getElementById('page-'+p).classList.remove('hidden');
+        };
+
+        // THÊM SẢN PHẨM
+        document.getElementById('add-product-btn').onclick = async () => {
             await addDoc(collection(db, "sanpham"), {
                 ten: document.getElementById('new-name').value,
                 gia: document.getElementById('new-price').value
             });
-            alert("Đã thêm!");
-            loadSanPham();
+            alert("Đã thêm!"); loadProducts();
         };
 
-        window.showPage = (p) => { /* logic ẩn hiện trang cũ */ };
-        loadSanPham(); // Tải ngay khi vào web
+        // AUTH
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const isAdmin = (user.email === "hieungo20089@gmail.com");
+                document.getElementById('auth-nav').innerHTML = `
+                    <button onclick="showPage('admin')" class="px-4 py-2 bg-red-500 text-white rounded">Admin</button>
+                    <button onclick="signOut(auth).then(()=>location.reload())" class="px-4 py-2 bg-gray-500 text-white rounded">Đăng xuất</button>`;
+                loadProducts();
+                showPage('home');
+            }
+        });
+
+        document.getElementById('auth-action-btn').onclick = async () => {
+            try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); }
+            catch { await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); }
+        };
+        
+        document.getElementById('toggle-pass').onclick = () => document.getElementById('pass').type = document.getElementById('pass').type === 'password' ? 'text' : 'password';
+        document.getElementById('btn-show-auth').onclick = () => showPage('auth');
     </script>
 </body>
 </html>
