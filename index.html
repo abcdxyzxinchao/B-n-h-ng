@@ -2,13 +2,14 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Final Unified</title>
+    <title>My Store - Full Pro Version</title>
 </head>
 <body class="bg-gray-50">
 
     <nav class="flex justify-between items-center p-6 bg-white shadow-sm sticky top-0 z-50">
-        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="window.showPage('home')">MY STORE</h1>
+        <h1 class="text-2xl font-bold text-blue-600 cursor-pointer" onclick="showPage('home')">MY STORE</h1>
         <div id="auth-nav"><button id="btn-show-auth" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Đăng nhập</button></div>
     </nav>
 
@@ -20,12 +21,12 @@
                         <div class="bg-white p-4 rounded-xl shadow-md border relative">
                             <div class="h-40 bg-gray-200 mb-4 rounded"></div>
                             <h3 class="font-bold">Sản phẩm ${i}</h3>
-                            <p class="text-red-500 font-semibold cursor-pointer">500.000đ</p>
+                            <p class="text-red-500 font-semibold">500.000đ</p>
                             <button class="menu-trigger absolute top-2 right-2 text-xl font-bold p-2" data-id="${i}">...</button>
-                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-xl p-4 rounded-xl border z-40 w-40">
+                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-lg p-3 rounded border z-40 w-36">
                                 <div class="flex justify-between mb-2"><span class="font-bold">Tùy chọn</span><button class="close-menu text-gray-400">✕</button></div>
-                                <p class="cursor-pointer wish-btn" data-id="${i}">Yêu thích</p>
-                                <p class="cursor-pointer detail-btn" data-id="${i}">Chi tiết</p>
+                                <p class="cursor-pointer hover:text-blue-500 p-1 wish-btn" data-id="${i}">Yêu thích</p>
+                                <p class="cursor-pointer hover:text-blue-500 p-1 detail-btn" data-id="${i}">Chi tiết</p>
                             </div>
                         </div>
                     `);
@@ -33,25 +34,25 @@
             </script>
         </div>
 
-        <div id="page-wishlist" class="hidden"><h2 class="text-2xl font-bold mb-4">Yêu thích</h2><div id="wishlist-container" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div></div>
-        <div id="page-detail" class="hidden bg-white p-8 rounded-xl shadow max-w-lg mx-auto"><h2 id="detail-title" class="text-3xl font-bold"></h2><button onclick="window.showPage('home')" class="mt-6 text-blue-500 underline">Quay lại</button></div>
+        <div id="page-wishlist" class="hidden"><h2 class="text-2xl font-bold mb-4">Danh sách yêu thích</h2><div id="wishlist-container" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div><button onclick="showPage('home')" class="mt-6 text-blue-500 underline">Quay lại</button></div>
+        <div id="page-detail" class="hidden bg-white p-8 rounded-xl shadow-md max-w-2xl mx-auto"><h2 id="detail-title" class="text-3xl font-bold"></h2><p class="text-xl text-red-600 mt-4">Giá: 500.000đ</p><button onclick="showPage('home')" class="mt-6 text-blue-500 underline">Quay lại</button></div>
         <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
             <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
             <input id="email" type="text" placeholder="Email" class="w-full p-3 border mb-4 rounded">
             <input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border mb-4 rounded">
             <button id="auth-action-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
-            <p id="toggle-text" class="text-center cursor-pointer text-blue-500">Chưa có tài khoản? Đăng ký</p>
+            <p id="toggle-text" class="mt-4 text-center cursor-pointer text-blue-500">Chưa có tài khoản? Đăng ký</p>
         </div>
         <div id="page-admin" class="hidden bg-red-50 p-8 rounded-xl shadow border-2 border-red-200">
-            <h2 class="text-2xl font-bold text-red-600">Trang quản trị (Admin Only)</h2>
-            <p>Chào Admin! Hệ thống đang hoạt động bình thường.</p>
-            <button onclick="window.showPage('home')" class="mt-4 bg-gray-800 text-white px-4 py-2 rounded">Về trang chủ</button>
+            <h2 class="text-2xl font-bold text-red-600">Admin Dashboard</h2>
+            <p>Chào quản trị viên. Bạn có toàn quyền quản lý sản phẩm.</p>
+            <button onclick="showPage('home')" class="mt-4 bg-gray-800 text-white px-4 py-2 rounded">Về trang chủ</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
         const auth = getAuth(initializeApp({
             apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
@@ -68,45 +69,47 @@
             document.getElementById('page-'+p).classList.remove('hidden');
         };
 
-        // MENU & CLICK NGOÀI
+        // XỬ LÝ MENU & CLICK NGOÀI
         document.addEventListener('click', (e) => {
             if (e.target.closest('.menu-trigger')) {
                 const id = e.target.dataset.id;
                 document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
                 document.getElementById('menu-'+id).classList.remove('hidden');
-            } else if (e.target.closest('.close-menu') || (!e.target.closest('.menu-trigger') && !e.target.closest('[id^="menu-"]'))) {
+            } else if (e.target.closest('.close-menu') || !e.target.closest('.menu-trigger')) {
                 document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
             }
         });
 
         // ACTIONS
-        document.querySelectorAll('.wish-btn').forEach(btn => btn.onclick = () => wishlist.push(btn.dataset.id) && alert("Đã thêm!"));
-        document.querySelectorAll('.detail-btn').forEach(btn => btn.onclick = () => { document.getElementById('detail-title').innerText = "Sản phẩm " + btn.dataset.id; window.showPage('detail'); });
+        document.querySelectorAll('.wish-btn').forEach(btn => btn.onclick = () => { wishlist.push(btn.dataset.id); alert("Đã thêm!"); });
+        document.querySelectorAll('.detail-btn').forEach(btn => btn.onclick = () => { document.getElementById('detail-title').innerText = "Sản phẩm " + btn.dataset.id; showPage('detail'); });
 
         // AUTH & ADMIN
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                const isAdmin = (user.email === "admin@gmail.com");
+                const isAdmin = (user.email === "admin@gmail.com"); // Thay email này thành của bạn
                 document.getElementById('auth-nav').innerHTML = `
                     <div class="relative"><img id="avatar-btn" src="https://ui-avatars.com/api/?name=${user.email}" class="w-10 h-10 rounded-full cursor-pointer">
-                        <div id="user-popup" class="hidden absolute right-0 mt-2 w-64 bg-white p-4 shadow-xl rounded-xl border">
-                            <p class="font-bold mb-2 truncate">${user.email}</p>
-                            <p id="go-wishlist" class="cursor-pointer py-1">Yêu thích</p>
+                        <div id="user-popup" class="hidden absolute right-0 mt-2 w-56 bg-white p-4 shadow-xl rounded-xl border">
+                            <p class="font-bold truncate mb-2">${user.email}</p>
+                            <p class="py-1">Số dư: 0đ</p>
+                            <p id="go-wishlist" class="cursor-pointer hover:text-blue-500 py-1">Yêu thích</p>
                             ${isAdmin ? '<p id="go-admin" class="cursor-pointer text-red-600 font-bold py-1">Quản trị hệ thống</p>' : ''}
                             <button id="logout-btn" class="w-full mt-2 bg-red-100 text-red-600 py-1 rounded">Đăng xuất</button>
                         </div>
                     </div>`;
                 document.getElementById('avatar-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('user-popup').classList.toggle('hidden'); };
-                if(isAdmin) document.getElementById('go-admin').onclick = () => window.showPage('admin');
+                if(isAdmin) document.getElementById('go-admin').onclick = () => showPage('admin');
                 document.getElementById('go-wishlist').onclick = () => {
-                    document.getElementById('wishlist-container').innerHTML = wishlist.map(id => `<div class="p-4 border">Sản phẩm ${id}</div>`).join('');
-                    window.showPage('wishlist');
+                    document.getElementById('wishlist-container').innerHTML = wishlist.map(id => `<div class="p-4 border shadow rounded">Sản phẩm ${id}</div>`).join('');
+                    showPage('wishlist');
                 };
                 document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
+                showPage('home');
             }
         });
-        
-        document.getElementById('btn-show-auth').onclick = () => window.showPage('auth');
+
+        document.getElementById('btn-show-auth').onclick = () => showPage('auth');
     </script>
 </body>
 </html>
