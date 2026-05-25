@@ -2,9 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>My Store - Final Unified</title>
+    <title>My Store - Connected to Database</title>
 </head>
 <body class="bg-gray-50">
 
@@ -14,112 +13,65 @@
     </nav>
 
     <div id="app" class="p-6">
-        <div id="page-home" class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <script>
-                for(let i=1; i<=20; i++) {
-                    document.write(`
-                        <div class="bg-white p-4 rounded-xl shadow-md border relative">
-                            <div class="h-40 bg-gray-200 mb-4 rounded"></div>
-                            <h3 class="font-bold">Sản phẩm ${i}</h3>
-                            <button class="menu-trigger absolute top-2 right-2 text-xl font-bold p-2" data-id="${i}">...</button>
-                            <div id="menu-${i}" class="hidden absolute right-0 bg-white shadow-lg p-2 rounded border z-40 w-32">
-                                <p class="cursor-pointer wish-btn p-1" data-id="${i}">Yêu thích</p>
-                                <p class="cursor-pointer detail-btn p-1" data-id="${i}">Chi tiết</p>
-                            </div>
-                        </div>
-                    `);
-                }
-            </script>
+        <div id="product-list" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <p>Đang tải dữ liệu...</p>
         </div>
 
-        <div id="page-admin" class="hidden bg-white p-8 rounded-2xl shadow-lg border-2 border-red-200 max-w-2xl mx-auto">
-            <h2 class="text-2xl font-bold text-red-600 mb-6">Quản trị hệ thống (Admin)</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="alert('Đã mở form thêm sản phẩm')" class="bg-blue-600 text-white p-4 rounded-lg">Thêm sản phẩm mới</button>
-                <button onclick="alert('Danh sách đơn hàng')" class="bg-yellow-500 text-white p-4 rounded-lg">Xem đơn hàng</button>
-                <button onclick="alert('Đang xóa...')" class="bg-red-600 text-white p-4 rounded-lg">Xóa sản phẩm</button>
-                <button onclick="alert('Mở danh sách khách hàng')" class="bg-green-600 text-white p-4 rounded-lg">Quản lý User</button>
+        <div id="page-admin" class="hidden bg-white p-8 rounded-2xl shadow-lg border-2 border-red-200">
+            <h2 class="text-2xl font-bold text-red-600 mb-6">Quản trị hệ thống</h2>
+            <div class="space-y-4">
+                <input id="new-name" type="text" placeholder="Tên sản phẩm" class="w-full p-2 border">
+                <input id="new-price" type="number" placeholder="Giá" class="w-full p-2 border">
+                <button id="add-btn" class="bg-blue-600 text-white p-2 rounded w-full">Thêm vào Database</button>
             </div>
-            <button onclick="showPage('home')" class="mt-8 text-gray-500 underline">Đóng trang quản trị</button>
-        </div>
-
-        <div id="page-wishlist" class="hidden"><h2 class="text-2xl font-bold mb-4">Yêu thích</h2><div id="wishlist-container" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div><button onclick="showPage('home')" class="mt-6 text-blue-500 underline">Quay lại</button></div>
-        <div id="page-detail" class="hidden bg-white p-8 rounded-xl shadow-md max-w-2xl mx-auto"><h2 id="detail-title" class="text-3xl font-bold"></h2><button onclick="showPage('home')" class="mt-6 text-blue-500 underline">Quay lại</button></div>
-        
-        <div id="page-auth" class="hidden max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl">
-            <button onclick="showPage('home')" class="float-right text-gray-400 text-2xl">×</button>
-            <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
-            <input id="email" type="text" placeholder="Email" class="w-full p-3 border mb-4 rounded">
-            <div class="relative mb-4"><input id="pass" type="password" placeholder="Mật khẩu" class="w-full p-3 border rounded"><button id="toggle-pass" class="absolute right-3 top-3">👁️</button></div>
-            <button id="auth-action-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4">Đăng nhập</button>
-            <button id="google-login-btn" class="w-full bg-red-500 text-white p-3 rounded-lg">Đăng nhập Google</button>
-            <p id="toggle-text" class="mt-4 text-center cursor-pointer text-blue-500">Chưa có tài khoản? Đăng ký</p>
+            <button onclick="showPage('home')" class="mt-8 text-gray-500 underline">Đóng</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        const auth = getAuth(initializeApp({
+        const app = initializeApp({
             apiKey: "AIzaSyBoX1FuReGf2onOHS8GlYq8jc5b5398hQU",
             authDomain: "banhang-b31dd.firebaseapp.com",
             projectId: "banhang-b31dd",
             storageBucket: "banhang-b31dd.firebasestorage.app",
             messagingSenderId: "634655097273",
             appId: "1:634655097273:web:899337e325e046eb91f668"
-        }));
-
-        window.showPage = (p) => {
-            ['home', 'wishlist', 'detail', 'auth', 'admin'].forEach(id => document.getElementById('page-'+id).classList.add('hidden'));
-            document.getElementById('page-'+p).classList.remove('hidden');
-        };
-
-        // UI Logic
-        document.getElementById('toggle-pass').onclick = () => document.getElementById('pass').type = document.getElementById('pass').type === 'password' ? 'text' : 'password';
-        
-        let isLogin = true;
-        document.getElementById('toggle-text').onclick = () => {
-            isLogin = !isLogin;
-            document.getElementById('auth-title').innerText = isLogin ? "Đăng nhập" : "Đăng ký";
-            document.getElementById('auth-action-btn').innerText = isLogin ? "Đăng nhập" : "Đăng ký";
-        };
-
-        // Event Delegation
-        document.addEventListener('click', (e) => {
-            if (e.target.matches('.menu-trigger')) {
-                document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
-                document.getElementById('menu-'+e.target.dataset.id).classList.toggle('hidden');
-            } else if (e.target.matches('.wish-btn')) { alert("Đã thêm!");
-            } else if (e.target.matches('.detail-btn')) { document.getElementById('detail-title').innerText = "SP " + e.target.dataset.id; showPage('detail'); }
         });
 
-        // Auth Logic
-        onAuthStateChanged(auth, (user) => {
-            const nav = document.getElementById('auth-nav');
-            if (user) {
-                const isAdmin = (user.email === "hieungo20089@gmail.com");
-                nav.innerHTML = `
-                    <div class="relative"><img id="avatar-btn" src="https://ui-avatars.com/api/?name=${user.email}" class="w-10 h-10 rounded-full cursor-pointer">
-                        <div id="user-popup" class="hidden absolute right-0 mt-2 w-48 bg-white p-4 shadow-xl rounded-xl z-50">
-                            ${isAdmin ? '<p onclick="showPage(\'admin\')" class="cursor-pointer text-red-600 font-bold">Quản trị Admin</p>' : ''}
-                            <button id="logout-btn" class="text-red-500 w-full mt-2">Đăng xuất</button>
-                        </div>
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // HÀM TẢI DỮ LIỆU
+        async function loadSanPham() {
+            const list = document.getElementById('product-list');
+            const snapshot = await getDocs(collection(db, "sanpham"));
+            list.innerHTML = "";
+            snapshot.forEach(doc => {
+                const sp = doc.data();
+                list.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow">
+                        <h3 class="font-bold">${sp.ten}</h3>
+                        <p class="text-red-500">${sp.gia}đ</p>
                     </div>`;
-                document.getElementById('avatar-btn').onclick = () => document.getElementById('user-popup').classList.toggle('hidden');
-                document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => location.reload());
-                showPage('home');
-            }
-        });
+            });
+        }
 
-        document.getElementById('auth-action-btn').onclick = async () => {
-            try { if(isLogin) await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value);
-                  else await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value);
-            } catch(e) { alert(e.message); }
+        // HÀM THÊM SẢN PHẨM
+        document.getElementById('add-btn').onclick = async () => {
+            await addDoc(collection(db, "sanpham"), {
+                ten: document.getElementById('new-name').value,
+                gia: document.getElementById('new-price').value
+            });
+            alert("Đã thêm!");
+            loadSanPham();
         };
 
-        document.getElementById('google-login-btn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
-        document.getElementById('btn-show-auth').onclick = () => showPage('auth');
+        window.showPage = (p) => { /* logic ẩn hiện trang cũ */ };
+        loadSanPham(); // Tải ngay khi vào web
     </script>
 </body>
 </html>
